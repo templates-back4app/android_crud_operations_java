@@ -6,6 +6,8 @@
     android:layout_height="match_parent"
     tools:context=".MainActivity">
 
+
+    <!--Title-->>
     <TextView
         android:id="@+id/textView"
         android:layout_width="0dp"
@@ -19,6 +21,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
+    <!--We will open a pop-up view when clicked to this button-->>
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fab"
         style="@style/Widget.MaterialComponents.FloatingActionButton"
@@ -33,7 +36,7 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:tint="@color/white" />
 
-
+    <!--We will show this text view when data list is empty-->>
     <TextView
         android:id="@+id/empty_text"
         android:layout_width="wrap_content"
@@ -45,6 +48,8 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/textView" />
+
+    <!--We will adapt the data list to this RecyclerView-->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recyclerView"
         android:layout_width="0dp"

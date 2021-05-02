@@ -19,8 +19,8 @@ public class TodoAdapter extends RecyclerView.Adapter<TodoHolder> {
 
     private List<ParseObject> list;
     private Context context;
-    public MutableLiveData<ParseObject> clickListenerToEdit = new MutableLiveData<>();
-    public MutableLiveData<ParseObject> clickListenerToDelete = new MutableLiveData<>();
+    public MutableLiveData<ParseObject> onEditListener = new MutableLiveData<>();
+    public MutableLiveData<ParseObject> onDeleteListener = new MutableLiveData<>();
 
     public TodoAdapter(List<ParseObject> list, Context context) {
         this.list = list;
@@ -41,11 +41,11 @@ public class TodoAdapter extends RecyclerView.Adapter<TodoHolder> {
         holder.description.setText(object.getString("description"));
 
         holder.edit.setOnClickListener(v -> {
-            clickListenerToEdit.postValue(object);
+            onEditListener.postValue(object);
         });
 
         holder.delete.setOnClickListener(v -> {
-            clickListenerToDelete.postValue(object);
+            onDeleteListener.postValue(object);
         });
     }
 

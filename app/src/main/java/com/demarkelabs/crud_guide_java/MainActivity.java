@@ -2,63 +2,49 @@ package com.demarkelabs.crud_guide_java;
 
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.lifecycle.Observer;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import android.app.ProgressDialog;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.ListView;
-import android.widget.SimpleAdapter;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
-import com.parse.DeleteCallback;
-import com.parse.FindCallback;
-import com.parse.GetCallback;
-import com.parse.ParseException;
 import com.parse.ParseObject;
 import com.parse.ParseQuery;
-import com.parse.ParseUser;
-import com.parse.SaveCallback;
 
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 public class MainActivity extends AppCompatActivity {
 
 
     private ProgressDialog progressDialog;
-    private View popupInputDialogView = null;
-    private EditText titleInput = null;
-    private EditText descriptionInput = null;
-    private Button saveTodoButton = null;
-    private Button cancelUserDataButton = null;
+    private View popupInputDialogView;
+    private EditText titleInput;
+    private EditText descriptionInput;
+    private Button saveTodoButton;
+    private Button cancelUserDataButton;
 
-    private FloatingActionButton openInputPopupDialogButton = null;
+    private FloatingActionButton openInputPopupDialogButton;
     private RecyclerView recyclerView;
     private TextView empty_text;
+
+    private static final String TAG = "MainActivity";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         progressDialog = new ProgressDialog(MainActivity.this);
-
         initMainActivityControls();
         getTodoList();
 
-
-        openInputPopupDialogButton.setOnClickListener(view -> {
+        openInputPopupDialogButton.setOnClickListener(fabButtonView -> {
             AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(MainActivity.this);
             alertDialogBuilder.setTitle("Create a TODO");
             alertDialogBuilder.setCancelable(true);
@@ -67,41 +53,43 @@ public class MainActivity extends AppCompatActivity {
             alertDialogBuilder.setView(popupInputDialogView);
             final AlertDialog alertDialog = alertDialogBuilder.create();
             alertDialog.show();
+            saveTodoButton.setOnClickListener(saveButtonView -> saveTodo(alertDialog));
+            cancelUserDataButton.setOnClickListener(cancelButtonView -> alertDialog.cancel());
+        });
+    }
 
-            saveTodoButton.setOnClickListener(view2 -> {
-                ParseObject todo = new ParseObject("Todo");
-                if (titleInput.getText().toString().length() != 0 && descriptionInput.getText().toString().length() != 0) {
-                    alertDialog.cancel();
-                    progressDialog.show();
-                    todo.put("title", titleInput.getText().toString());
-                    todo.put("description", descriptionInput.getText().toString());
-                    todo.saveInBackground(e -> {
-                        progressDialog.dismiss();
-                        if (e == null) {
-                            getTodoList();
-                        } else {
-                            showAlert("Error", e.getMessage());
-                        }
-                    });
+    private void saveTodo(AlertDialog alertDialog) {
+        ParseObject todo = new ParseObject("Todo");
+        if (titleInput.getText().toString().length() != 0 && descriptionInput.getText().toString().length() != 0) {
+            alertDialog.cancel();
+            progressDialog.show();
+            todo.put("title", titleInput.getText().toString());
+            todo.put("description", descriptionInput.getText().toString());
+            todo.saveInBackground(e -> {
+                progressDialog.dismiss();
+                if (e == null) {
+                    //We saved the object and fetching data again
+                    getTodoList();
                 } else {
-                    showAlert("Error", "Please enter a title and description");
+                    //We have an error.We are showing error message here.
+                    showAlert("Error", e.getMessage());
                 }
             });
-            cancelUserDataButton.setOnClickListener(view1 -> alertDialog.cancel());
-        });
+        } else {
+            showAlert("Error", "Please enter a title and description");
+        }
     }
 
     private void initMainActivityControls() {
         recyclerView = findViewById(R.id.recyclerView);
         empty_text = findViewById(R.id.empty_text);
-        if (openInputPopupDialogButton == null) {
-            openInputPopupDialogButton = findViewById(R.id.fab);
-        }
+        openInputPopupDialogButton = findViewById(R.id.fab);
     }
 
     private void getTodoList() {
         progressDialog.show();
         ParseQuery<ParseObject> query = ParseQuery.getQuery("Todo");
+        //We use this code to fetch data from newest to oldest.
         query.orderByDescending("createdAt");
         query.findInBackground((objects, e) -> {
             progressDialog.dismiss();
@@ -115,71 +103,59 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void initTodoList(List<ParseObject> list) {
-        if (list!=null && list.size()==0)
+        if (list == null || list.isEmpty()) {
             empty_text.setVisibility(View.VISIBLE);
-        else if (list != null)
-            empty_text.setVisibility(View.GONE);
-        else{
-            empty_text.setVisibility(View.GONE);
-            Toast.makeText(this, "Something went wrong!", Toast.LENGTH_SHORT).show();
+            return;
         }
+        empty_text.setVisibility(View.GONE);
 
         TodoAdapter adapter = new TodoAdapter(list, this);
 
-        adapter.clickListenerToDelete.observe(this, parseObject -> {
+        adapter.onDeleteListener.observe(this, parseObject -> {
             progressDialog.show();
             parseObject.deleteInBackground(e -> {
                 progressDialog.dismiss();
                 if (e == null) {
+                    //We deleted the object and fetching data again.
                     getTodoList();
                 } else {
-                    showAlert("Error",e.getMessage());
+                    showAlert("Error", e.getMessage());
                 }
             });
         });
 
-        adapter.clickListenerToEdit.observe(this, parseObject -> {
+        adapter.onEditListener.observe(this, parseObject -> {
             AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(MainActivity.this);
             alertDialogBuilder.setTitle("Update a TODO");
             alertDialogBuilder.setCancelable(true);
+            //We are initializing PopUp Views with title and description parameters of Parse Object
             initPopupViewControls(parseObject.getString("title"), parseObject.getString("description"));
             alertDialogBuilder.setView(popupInputDialogView);
             final AlertDialog alertDialog = alertDialogBuilder.create();
             alertDialog.show();
-            saveTodoButton.setOnClickListener(view2 -> {
+            saveTodoButton.setOnClickListener(saveTodoButtonView -> {
                 if (titleInput.getText().toString().length() != 0 && descriptionInput.getText().toString().length() != 0) {
                     alertDialog.cancel();
                     progressDialog.show();
-                    ParseQuery<ParseObject> query = ParseQuery.getQuery("Todo");
-                    query.getInBackground(parseObject.getObjectId(), (todo, e) -> {
-                        if (e == null) {
-                            todo.put("title", titleInput.getText().toString());
-                            todo.put("description", descriptionInput.getText().toString());
-                            todo.saveInBackground(e1 -> {
-                                progressDialog.dismiss();
-                                if (e1 == null) {
-                                    getTodoList();
-                                } else {
-                                    showAlert("Error", e1.getMessage());
-                                }
-                            });
+                    parseObject.put("title", titleInput.getText().toString());
+                    parseObject.put("description", descriptionInput.getText().toString());
+                    parseObject.saveInBackground(e1 -> {
+                        progressDialog.dismiss();
+                        if (e1 == null) {
+                            getTodoList();
                         } else {
-                            progressDialog.dismiss();
-                            showAlert("Error", e.getMessage());
+                            showAlert("Error", e1.getMessage());
                         }
                     });
                 } else {
                     showAlert("Error", "Please enter a title and description");
                 }
-
-
             });
-            cancelUserDataButton.setOnClickListener(view1 -> alertDialog.cancel());
+            cancelUserDataButton.setOnClickListener(cancelButtonView -> alertDialog.cancel());
         });
 
 
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
-        recyclerView.setHasFixedSize(false);
         recyclerView.setAdapter(adapter);
     }
 
